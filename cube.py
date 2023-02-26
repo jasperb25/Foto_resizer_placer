@@ -12,7 +12,7 @@ def resize_image(image, target_size):
 
 def generate_pdf(uploaded_files, target_size):
     pdf = PyPDF2.PdfFileWriter()
-    page = PyPDF2.pdf.PageObject.createBlankPage(None, 595, 842)
+    page = pdf.PageObject.createBlankPage(None, 595, 842)
     x, y = 0, 0
 
     for file in uploaded_files:
