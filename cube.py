@@ -1,48 +1,41 @@
 import streamlit as st
+import numpy as np
+import pyvista as pv
+from pyvista import themes
+import io
 from PIL import Image
-import PyPDF2
+from PyPDF2 import PdfFileWriter, PdfFileReader
 
-def resize_image(image, target_size):
-    # Convert cm to inches
-    target_size_inches = target_size / 2.54
-    # Calculate the new size in pixels
-    new_size = tuple(int(x * target_size_inches) for x in image.size)
-    # Resize the image
-    return image.resize(new_size)
 
-def generate_pdf(uploaded_files, target_size):
-    pdf = PyPDF2.PdfFileWriter()
-    page = pdf.PageObject.createBlankPage(None, 595, 842)
-    x, y = 0, 0
+st.set_page_config(page_title="3D-knipvel", page_icon=":scissors:", layout="wide")
+st.title("3D-knipvel")
 
-    for file in uploaded_files:
-        image = Image.open(file)
-        resized_image = resize_image(image, target_size)
-        page_left, page_top, page_right, page_bottom = page.mediaBox
-        width, height = resized_image.size
-        if x + width > page_right:
-            y += height
-            x = 0
-        if y + height > page_bottom:
-            pdf.addPage(page)
-            page = PyPDF2.pdf.PageObject.createBlankPage(None, 595, 842)
-            x, y = 0, 0
-        page.mergeTranslatedPage(resized_image.convert("RGB"), x, page_bottom - y - height)
-        x += width
-    pdf.addPage(page)
+# Slider voor de grootte van de vierkanten in cm
+size_cm = st.slider("Grootte van de vierkanten (cm)", 1, 10, 5, 1)
 
-    output_filename = "output.pdf"
-    with open(output_filename, "wb") as out_file:
-        pdf.write(out_file)
+# Maak een PyVista-blok
+square = pv.Box([0, size_cm, 0, size_cm, 0, size_cm])
 
-    return output_filename
+# Maak een PyVista-offscreen-renderer
+plotter = pv.Plotter(off_screen=True)
+plotter.set_background("white")
+plotter.add_mesh(square, color="blue")
 
-uploaded_files = st.file_uploader("Upload 6 images", accept_multiple_files=True, type=['png', 'jpg'])
-target_size = st.slider("Target size in cm", 1, 10, 5)
+# Render het beeld en sla het op als een afbeelding
+image = plotter.screenshot()
+img = Image.fromarray(image)
 
-if st.button("Generate PDF"):
-    output_filename = generate_pdf(uploaded_files, target_size)
-    pdf = PyPDF2.PdfFileReader(output_filename)
-    for i in range(pdf.getNumPages()):
-        page = pdf.getPage(i)
-        st.image(page, use_column_width=True)
+# Sla de afbeelding op als een PDF
+pdf_output = PdfFileWriter()
+pdf_bytes = io.BytesIO()
+img.save(pdf_bytes, format='PDF')
+pdf_output.addPage(PdfFileReader(io.BytesIO(pdf_bytes.getvalue())).getPage(0))
+pdf_data = pdf_output.getBytes()
+
+# Download de PDF
+b64 = base64.b64encode(pdf_data).decode()
+href = f'<a href="data:application/pdf;base64,{b64}" download="3d_knipvel.pdf">Download de 3D-knipvel als PDF</a>'
+st.markdown(href, unsafe_allow_html=True)
+
+# Laat het beeld van de 3D-knipvel zien
+st.image(image, use_column_width=True)
