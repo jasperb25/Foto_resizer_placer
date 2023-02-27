@@ -5,7 +5,6 @@ from reportlab.pdfgen import canvas
 from io import BytesIO
 from PyPDF2 import PdfFileWriter, PdfFileReader
 from io import BytesIO
-from streamlit.components.v1 import download_button
 
 
 st.set_page_config(page_title="3D-knipvel", page_icon=":scissors:", layout="wide")
